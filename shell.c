@@ -35,73 +35,58 @@
 #define MAXLINE 80
 
 
-void freeinput(char *input[],int c)
-{
+void freeinput(char *input[],int c) {
     int i = 0;
-    while(input[i] != NULL && (i < c))
-    {
+    while(input[i] != NULL && (i < c)) {
         free(input[i]);
         ++i;
-        if (i == 80)
-        {
+        if (i == 80){
             break;
         } 
     }
 }
-void exec_pipe(char* input[], int *hasAmp, int *c)
-{
+void exec_pipe(char* input[], int *hasAmp, int *c) {
     int pid = fork();
-    if (pid == 0) 
-    {          
+    if (pid == 0) {          
         //child
-        for (int i = 1 ; i< *c-1 ; i++)
-        {
-            if (strcmp(input[i], "|") == 0) 
-            {
+        for (int i = 1 ; i< *c - 1 ; ++i) {
+            if (strcmp(input[i], "|") == 0) {
                 // case "|" . Needs use pipe
                 int fd[2];
-                if (pipe(fd) == -1) 
-                {
+                if (pipe(fd) == -1) {
                     fprintf(stderr, "Pipe Failed\n");
                     return ;
                 }
                 // split 2 commands, put a head of pipe in stdout and exec first command to get the first result
                 // put a tail of pipe in stdin, exec second command
                 char *cm1[i + 1];
-                char *cm2[*c - i - 1 + 1];
-                for (int j = 0; j < i; ++j) 
-                {
+                char *cm2[*c - i];
+                for (int j = 0; j < i; ++j) {
                     cm1[j] = input[j];
                 }
                 cm1[i] = NULL;
-                for (int j = 0; j < *c - i - 1; ++j) 
-                {
+                for (int j = 0; j < *c - i - 1; ++j) {
                     cm2[j] = input[j + i + 1];
                 }
                 cm2[*c - i - 1] = NULL;
 
                 int pid_pipe = fork();
-                if (pid_pipe > 0) 
-                {
+                if (pid_pipe > 0) {
                     wait(NULL);
                     close(fd[1]);
                     dup2(fd[0], STDIN_FILENO);
                     close(fd[0]);
-                    if (execvp(cm2[0], cm2) == -1) 
-                    {
+                    if (execvp(cm2[0], cm2) == -1) {
                         printf("Invalid Command!\n");
                         return;
                     }
 
                 } 
-                else if (pid_pipe == 0) 
-                {
-
+                else if (pid_pipe == 0) {
                     close(fd[0]);
                     dup2(fd[1], STDOUT_FILENO);
                     close(fd[1]);
-                    if (execvp(cm1[0], cm1) == -1) 
-                    {
+                    if (execvp(cm1[0], cm1) == -1) {
                         printf("Invalid Command!\n");
                         return ;
                     }
@@ -113,16 +98,13 @@ void exec_pipe(char* input[], int *hasAmp, int *c)
             }
         }
     }
-    else if ( pid > 0)
-    {
+    else if ( pid > 0) {
         //parent
-        if( *hasAmp ==0)
-        {
+        if( *hasAmp == 0) {
              wait(NULL);
         }
     }
-    else
-    {
+    else {
         perror("Fork Failed");
     }
 }
@@ -138,16 +120,14 @@ void analysisCM(char *input[], int *hasAmp, int *c) {
 
 
     // delete \n (endline) from user input
-    if (commands[count - 1] == '\n')
-    {
+    if (commands[count - 1] == '\n') {
         commands[count - 1] = '\0';
     }
 
     // Checks prompt from user command. If it is "!!", print out no command in history and return
     // old commands still save in input
     if (strcmp(commands, "!!") == 0) {
-        if (*c == 0)
-        {
+        if (*c == 0) {
             printf("No commands in history.\n");
         }
         return;
@@ -177,28 +157,24 @@ void analysisCM(char *input[], int *hasAmp, int *c) {
     input[*c] = NULL;
     
 }
-void exec(char *input[], int *hasAmp, int *c)
-{
+void exec(char *input[], int *hasAmp, int *c) {
    
     int fd[2]={-1,-1};
-    while(*c >= 3)
-    {
-		if(strcmp(input[*c-2], ">") == 0)
-        {	
+    while(*c >= 3) {
+		if(strcmp(input[*c - 2], ">") == 0) {	
             //case ">" output from file
-			fd[1] = open(input[*c-1], O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP|S_IWGRP);
+			fd[1] = open(input[*c - 1], O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP|S_IWGRP);
 			if(fd[1] == -1){
 				printf("open");
 				return;
 			}
-			input[*c-2] = NULL;
+			input[*c - 2] = NULL;
 			*c -= 2;
 		}
-        else if(strcmp(input[*c-2], "<") == 0)
-        { 
+        else if(strcmp(input[*c - 2], "<") == 0) { 
             // case "<" input from file  Open for reading only
-			fd[0] = open(input[*c-1], O_RDONLY);
-			if(fd[0] == -1){
+			fd[0] = open(input[*c - 1], O_RDONLY);
+			if(fd[0] == -1) {
 				printf("open");
 				return;
 			}
@@ -213,26 +189,20 @@ void exec(char *input[], int *hasAmp, int *c)
 	pid_t pid = fork();	
     
     // <=-1 fork failed
-	if(pid<=-1)	
-    {
+	if(pid<=-1)	{
 		perror("Fork failed");
     }
     //child	
-    else if(pid ==0)
-    {	
+    else if(pid == 0) {	
             fflush(stdout);
-			if(fd[0] != -1)
-            {	
-				if(dup2(fd[0], STDIN_FILENO) != STDIN_FILENO)
-                {
+			if(fd[0] != -1) {	
+				if(dup2(fd[0], STDIN_FILENO) != STDIN_FILENO) {
 					perror("dup2 fd[0] error");
 					exit(1);
 				}
 			}
-			if(fd[1] != -1)
-            {	
-				if(dup2(fd[1], STDOUT_FILENO) != STDOUT_FILENO)
-                {
+			if(fd[1] != -1) {	
+				if(dup2(fd[1], STDOUT_FILENO) != STDOUT_FILENO) {
 					perror("dup2 fd[1] error");
 					exit(1);
 				}
@@ -242,49 +212,44 @@ void exec(char *input[], int *hasAmp, int *c)
 			exit(0);
     }
     // parent
-	else
-    { 
+	else { 
 		close(fd[0]);close(fd[1]);
         // if has & , don't have to wait child
-		if(!*hasAmp)
-        {
+		if(!*hasAmp) {
             waitpid(pid, &status, 0);
         }
 	}
 }
-int main()
-{
+int main() {
     // command line arguments
     char* input[MAXLINE/2+1];
   
- 
     // flag to determine when to exit program
     bool finished = false;
     pid_t pid;
     int hasAmp = 0;
     int c = 0;
     label:
-    while (!finished) 
-    {
+    while (!finished) {
         printf("osh> ");        
         fflush(stdout);
         
         analysisCM(input, &hasAmp, &c);
         //exit program when user enter "exit()"
-        for( int i = 0 ; i < c - 1; ++i)
-            if(strcmp(input[i],"|")==0){
+        for( int i = 0 ; i < c - 1; ++i) {
+            if(strcmp(input[i],"|") == 0) {
                 exec_pipe(input,&hasAmp,&c);
                 goto label;
                 
             }
-        if(strcmp(input[0],"exit()") == 0)
-        {
+        }
+        if(strcmp(input[0],"exit()") == 0) {
             printf("osh exited\n");
             printf("program finished\n");
 
             return 0;
         }
-        else{
+        else {
             exec(input,&hasAmp,&c);
             
         }
